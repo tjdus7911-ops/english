@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "node e2e/run.mjs && node e2e/voice.mjs && node e2e/expressions.mjs",
-    "typecheck": "tsc -b && tsc -p tsconfig.test.json --noEmit"
+    "typecheck": "tsc -b && tsc -p tsconfig.test.json --noEmit",
+    "build:preview": "node scripts/build-preview.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",

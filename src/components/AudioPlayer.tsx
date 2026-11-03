@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dialogue } from '../types';
 import { Icon } from './Icon';
 import { useToast } from './ui';
+import { prefetchAudio, resolveAudioUrl, syncAudioUrl } from '../lib/audioSource';
 
-export const audioUrl = (path: string) => `${import.meta.env.BASE_URL}${path}`;
 const SPEEDS = [0.75, 1, 1.25];
 
 /** 여러 음성 파일을 순서대로 재생하는 훅 (재생·일시정지·반복·속도·오류 처리) */
@@ -29,6 +29,12 @@ export function useSequencePlayer(files: string[]) {
     };
   }, []);
 
+  const key = files.join('|');
+  useEffect(() => {
+    prefetchAudio(files);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
   const playAt = useCallback(
     (i: number, single = false) => {
       const a = audio.current;
@@ -36,7 +42,20 @@ export function useSequencePlayer(files: string[]) {
       state.current.idx = i;
       state.current.single = single;
       setIdx(i);
-      a.src = audioUrl(files[i]);
+      const loadError = () => {
+        setPlaying(false);
+        setError('음성 파일을 불러오지 못했어요. 네트워크 상태를 확인하고 다시 시도해 주세요.');
+        toast('음성을 재생할 수 없어요.');
+      };
+      const ready = syncAudioUrl(files[i]);
+      if (!ready) {
+        // 묶음 파일을 아직 받는 중이면 받은 뒤 재생
+        resolveAudioUrl(files[i])
+          .then(() => state.current.idx === i && playAt(i, single))
+          .catch(loadError);
+        return;
+      }
+      a.src = ready;
       a.playbackRate = state.current.rate;
       a.onended = () => {
         const s = state.current;
@@ -51,11 +70,7 @@ export function useSequencePlayer(files: string[]) {
           setIdx(-1);
         }
       };
-      a.onerror = () => {
-        setPlaying(false);
-        setError('음성 파일을 불러오지 못했어요. 네트워크 상태를 확인하고 다시 시도해 주세요.');
-        toast('음성을 재생할 수 없어요.');
-      };
+      a.onerror = loadError;
       a.play()
         .then(() => {
           setError(null);

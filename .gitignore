@@ -25,3 +25,5 @@ dist-ssr
 
 # E2E 스크린샷
 e2e/screens/
+
+dist-preview/
