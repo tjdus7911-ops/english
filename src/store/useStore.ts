@@ -56,6 +56,9 @@ export interface UserData {
   speakingAttempts: SpeakingAttempt[];
   /** 녹음·음성 인식 사용 동의 시각 (동의 전에는 마이크를 켜지 않음) */
   voiceConsentAt: number | null;
+  savedExpressions: string[];
+  /** 학습 완료 이벤트 (키당 1회만 기록 → 향후 보상 중복 지급 방지 기준) */
+  completionEvents: Record<string, number>;
 }
 
 interface Actions {
@@ -88,6 +91,10 @@ interface Actions {
   /** 말하기 시도 기록. 누락·다르게 인식된 단어가 있으면 재연습 복습 항목 등록 */
   recordSpeaking: (a: Omit<SpeakingAttempt, 'id' | 'at'>, asReview: boolean) => void;
   setVoiceConsent: (on: boolean) => void;
+  /** 표현 저장 = 저장 목록 + 복습 일정 등록 */
+  toggleSaveExpression: (id: string) => void;
+  /** 학습 완료 이벤트. 이미 기록된 키면 false (중복 없음) */
+  recordCompletion: (key: string) => boolean;
   resetAll: () => void;
 }
 
@@ -133,6 +140,8 @@ export const initialData = (): UserData => ({
   listeningRecords: {},
   speakingAttempts: [],
   voiceConsentAt: null,
+  savedExpressions: [],
+  completionEvents: {},
 });
 
 export const useStore = create<UserData & Actions>()(
@@ -176,6 +185,12 @@ export const useStore = create<UserData & Actions>()(
               for (const w of q.wordIds) {
                 const k = itemKey('word', w);
                 if (reviews[k]) reviews[k] = applyAnswer(reviews[k], correct, asReview, now);
+              }
+              if (q.expressionId) {
+                const k = itemKey('expression', q.expressionId);
+                const prev = reviews[k];
+                if (prev) reviews[k] = applyAnswer(prev, correct, asReview, now);
+                else if (!correct) reviews[k] = applyAnswer(createItem('expression', q.expressionId, now), false, false, now);
               }
               if (q.dialogueId) {
                 // 듣기 오답 → 해당 대화 재청취 복습 등록
@@ -309,6 +324,20 @@ export const useStore = create<UserData & Actions>()(
         }),
 
       setVoiceConsent: (on) => set({ voiceConsentAt: on ? Date.now() : null }),
+
+      toggleSaveExpression: (id) =>
+        set((s) => {
+          const has = s.savedExpressions.includes(id);
+          const k = itemKey('expression', id);
+          const reviews = !has && !s.reviews[k] && s.profile.reviewEnabled ? { ...s.reviews, [k]: createItem('expression', id, Date.now()) } : s.reviews;
+          return { savedExpressions: has ? s.savedExpressions.filter((x) => x !== id) : [...s.savedExpressions, id], reviews };
+        }),
+
+      recordCompletion: (key) => {
+        if (get().completionEvents[key]) return false;
+        set((s) => ({ completionEvents: { ...s.completionEvents, [key]: Date.now() } }));
+        return true;
+      },
 
       resetAll: () => set({ ...initialData() }),
     }),

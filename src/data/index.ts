@@ -8,6 +8,7 @@ import { buildWordQuiz } from './wordQuiz';
 import { lectures } from './content/lectures';
 import { wordExtras } from './content/wordExtras';
 import { listeningQuestions } from './listening';
+import { expressionQuestions } from './expressions';
 
 /** 준비된 단원의 학습 목표·성취 기준 */
 const UNIT_GOALS: Record<string, { goals: string[]; canDo: string[] }> = {
@@ -53,7 +54,7 @@ export const concepts: GrammarConcept[] = [...a1Concepts, ...a2Concepts, ...b1Co
 });
 export const courseQuestions: Question[] = [...a1Questions, ...a2Questions, ...b1Questions, ...b2Questions];
 export const wordQuizQuestions: Question[] = buildWordQuiz(vocabulary);
-export const allQuestions: Question[] = [...courseQuestions, ...placementQuestions, ...wordQuizQuestions, ...listeningQuestions];
+export const allQuestions: Question[] = [...courseQuestions, ...placementQuestions, ...wordQuizQuestions, ...listeningQuestions, ...expressionQuestions];
 export const allUnits: Unit[] = courses.flatMap((c) => c.units);
 
 const byId = <T extends { id: string }>(arr: T[]) => new Map(arr.map((x) => [x.id, x]));

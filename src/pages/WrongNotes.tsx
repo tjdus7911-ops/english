@@ -17,6 +17,7 @@ const TABS: { v: Tab; label: string }[] = [
   { v: 'grammar', label: '문법' },
   { v: 'writing', label: '영작' },
   { v: 'reading', label: '해석' },
+  { v: 'listening', label: '듣기' },
 ];
 
 function answerText(q: Question) {

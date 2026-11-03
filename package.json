@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:e2e": "node e2e/run.mjs && node e2e/voice.mjs",
+    "test:e2e": "node e2e/run.mjs && node e2e/voice.mjs && node e2e/expressions.mjs",
     "typecheck": "tsc -b && tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {

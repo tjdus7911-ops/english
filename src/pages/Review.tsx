@@ -63,7 +63,7 @@ function ReviewInner({ focus, kind }: { focus?: string; kind?: ReviewKind }) {
             <ul className="divide-y divide-line">
               {after.map(({ it, r }) => (
                 <li key={it.key} className="px-4 py-3 flex items-center gap-2 text-sm">
-                  <span className="chip bg-surface text-ink-sub shrink-0">{it.kind === 'word' ? '단어' : '문법'}</span>
+                  <span className="chip bg-surface text-ink-sub shrink-0">{({ word: '단어', concept: '문법', listening: '듣기', speaking: '말하기', expression: '표현' } as const)[it.kind]}</span>
                   <span className="flex-1 min-w-0 truncate font-medium en">{it.title}</span>
                   {r && (
                     <span className="text-ink-sub shrink-0">
@@ -135,7 +135,7 @@ function ReviewInner({ focus, kind }: { focus?: string; kind?: ReviewKind }) {
             return it ? (
               <p className="text-xs text-ink-sub flex items-center gap-1">
                 <Icon name="refresh" size={14} />
-                {it.kind === 'word' ? '단어' : '문법'} 복습: <span className="en">{it.title}</span> · {it.reason} · {QUESTION_TYPE_LABEL[q.type]}
+                {({ word: '단어', concept: '문법', listening: '듣기', speaking: '말하기', expression: '표현' } as const)[it.kind]} 복습: <span className="en">{it.title}</span> · {it.reason} · {QUESTION_TYPE_LABEL[q.type]}
               </p>
             ) : null;
           }}

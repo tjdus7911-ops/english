@@ -73,8 +73,8 @@ export default function Home() {
                   <p className="text-xl font-bold tabular-nums">{sum.dueWords}</p>
                 </div>
                 <div className="rounded-xl bg-surface p-3">
-                  <p className="text-xs text-ink-sub">문법{sum.dueListening ? '·듣기' : ''}</p>
-                  <p className="text-xl font-bold tabular-nums">{sum.dueConcepts + sum.dueListening}</p>
+                  <p className="text-xs text-ink-sub">문법{sum.dueListening ? '·듣기' : ''}{sum.dueExpressions ? '·표현' : ''}</p>
+                  <p className="text-xl font-bold tabular-nums">{sum.dueConcepts + sum.dueListening + sum.dueExpressions}</p>
                 </div>
                 <div className="rounded-xl bg-surface p-3">
                   <p className="text-xs text-ink-sub">예상 시간</p>

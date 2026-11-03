@@ -79,7 +79,7 @@ export default function Stats() {
               <li key={st} className="flex items-center text-sm">
                 <span className="flex-1">{MEMORY_LABEL[st]}</span>
                 <span className="text-ink-sub tabular-nums text-right">
-                  단어 {mem[st].word} · 문법 {mem[st].concept} · 듣기 {mem[st].listening} · 말하기 {mem[st].speaking}
+                  단어 {mem[st].word} · 문법 {mem[st].concept} · 듣기 {mem[st].listening} · 말하기 {mem[st].speaking} · 표현 {mem[st].expression}
                 </span>
               </li>
             ))}

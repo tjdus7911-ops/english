@@ -143,7 +143,7 @@ export const MASTERY_LABEL: Record<UserMastery['state'], string> = {
 
 /** 장기 기억 현황: 복습 항목을 기억 상태별로 집계 */
 export function memoryStats(reviews: Record<string, ReviewSchedule>, now = Date.now()) {
-  const z = () => ({ word: 0, concept: 0, listening: 0, speaking: 0 });
+  const z = () => ({ word: 0, concept: 0, listening: 0, speaking: 0, expression: 0 });
   const out: Record<MemoryState, Record<ReviewSchedule['kind'], number>> = { new: z(), due: z(), learning: z(), stable: z(), relearn: z() };
   Object.values(reviews).forEach((r) => out[memoryState(r, now)][r.kind]++);
   return out;

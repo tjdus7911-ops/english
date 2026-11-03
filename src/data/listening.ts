@@ -8,6 +8,9 @@ import type { Dialogue, DialogueLine, Question } from '../types';
 type L = [speaker: 'A' | 'B', en: string, ko: string];
 interface Raw {
   id: string;
+  level?: 'A1' | 'A2';
+  /** 표현 학습관 '상황별 듣기·말하기' 콘텐츠 여부 */
+  situational?: boolean;
   title: string;
   situation: string;
   A: [string, 'female' | 'male'];
@@ -265,12 +268,260 @@ const RAW: Raw[] = [
   },
 ];
 
+
+const SIT = (r: Omit<Raw, 'level' | 'situational'>): Raw => ({ ...r, level: 'A2', situational: true });
+
+/** 표현 학습관 · 상황별 듣기·말하기 (A2) 10편 */
+const RAW_SITUATIONS: Raw[] = [
+  SIT({
+    id: 'sx-01',
+    title: '카페에서 주문하기',
+    situation: '카페 카운터에서 음료를 주문해요.',
+    A: ['Barista', 'female'],
+    B: ['Daniel', 'male'],
+    lines: [
+      ['A', 'Hi, what can I get for you?', '안녕하세요, 뭐 드릴까요?'],
+      ['B', 'Can I get a large iced latte, please?', '아이스 라테 큰 사이즈로 주시겠어요?'],
+      ['A', 'Sure. For here or to go?', '네. 드시고 가세요, 가져가세요?'],
+      ['B', 'To go, please. How much is it?', '가져갈게요. 얼마예요?'],
+      ['A', "That's five dollars and fifty cents.", '5달러 50센트입니다.'],
+      ['B', 'Here you are. Thank you.', '여기요. 감사합니다.'],
+    ],
+    keyWords: [['large', '큰'], ['iced', '얼음을 넣은, 차가운'], ['to go', '포장해 가는'], ['cent', '센트']],
+    keyExpressions: [
+      ['Can I get …, please?', '…로 주시겠어요?', '주문할 때 가장 무난한 표현이에요.'],
+      ['For here or to go?', '드시고 가세요, 가져가세요?', '점원이 꼭 묻는 질문. To go, please. / For here, please.로 답해요.'],
+    ],
+    conceptIds: [],
+    q1: { prompt: '손님이 주문한 음료는?', options: ['큰 사이즈 아이스 라테', '작은 사이즈 따뜻한 라테', '큰 사이즈 아메리카노', '아이스티'], answer: '큰 사이즈 아이스 라테', explanation: 'Can I get a large iced latte, please?' },
+    q2: { prompt: '손님은 음료를 어떻게 하나요?', options: ['가져간다', '매장에서 마신다', '친구에게 선물한다', '주문을 취소한다'], answer: '가져간다', explanation: 'For here or to go? — To go, please.' },
+    dictation: { line: 2, word: 'here', explanation: 'For here or to go? — 매장에서 드실지, 가져가실지 묻는 말이에요.' },
+  }),
+  SIT({
+    id: 'sx-02',
+    title: '호텔 체크인',
+    situation: '호텔 프런트에서 체크인해요.',
+    A: ['Clerk', 'male'],
+    B: ['Ms. Lee', 'female'],
+    lines: [
+      ['A', 'Good evening. How can I help you?', '안녕하세요. 무엇을 도와드릴까요?'],
+      ['B', "Hi, I'd like to check in. I have a reservation under Lee.", '안녕하세요, 체크인하려고요. 이(Lee)로 예약했어요.'],
+      ['A', 'Yes, Ms. Lee. Three nights, right?', '네, 이 고객님. 3박 맞으시죠?'],
+      ['B', "That's right. Is breakfast included?", '맞아요. 조식 포함인가요?'],
+      ['A', 'Yes, it is. Breakfast is from seven to ten.', '네, 포함입니다. 조식은 7시부터 10시까지예요.'],
+      ['B', 'Great. Thank you.', '좋네요. 감사합니다.'],
+    ],
+    keyWords: [['reservation', '예약'], ['night', '박, 밤'], ['breakfast', '아침 식사'], ['included', '포함된']],
+    keyExpressions: [
+      ["I'd like to check in.", '체크인하고 싶어요.', "I'd like to + 동사원형 = ~하고 싶어요(정중)."],
+      ['Is breakfast included?', '조식 포함인가요?', '요금에 포함되는지 물을 때 써요.'],
+    ],
+    conceptIds: [],
+    q1: { prompt: '손님은 며칠 묵나요?', options: ['3박', '1박', '2박', '일주일'], answer: '3박', explanation: 'Three nights, right? — That\'s right.' },
+    q2: { prompt: '조식 시간은?', options: ['7시부터 10시까지', '6시부터 9시까지', '8시부터 11시까지', '조식은 포함되지 않는다'], answer: '7시부터 10시까지', explanation: 'Breakfast is from seven to ten.' },
+    dictation: { line: 1, word: 'reservation', explanation: 'I have a reservation under Lee. — under + 이름 = ~의 이름으로.' },
+  }),
+  SIT({
+    id: 'sx-03',
+    title: '길 묻기',
+    situation: '여행 중 길에서 미술관 가는 길을 물어요.',
+    A: ['Sophie', 'female'],
+    B: ['Local', 'male'],
+    lines: [
+      ['A', 'Excuse me. How do I get to the art museum?', '실례합니다. 미술관에 어떻게 가요?'],
+      ['B', 'Go straight and turn left at the bank.', '쭉 가다가 은행에서 왼쪽으로 도세요.'],
+      ['A', 'Is it within walking distance?', '걸어갈 수 있는 거리예요?'],
+      ['B', "Yes, it's about ten minutes on foot.", '네, 걸어서 10분 정도예요.'],
+      ['A', 'Thank you so much.', '정말 감사합니다.'],
+      ['B', "You're welcome. Enjoy the museum!", '천만에요. 미술관 즐겁게 구경하세요!'],
+    ],
+    keyWords: [['straight', '똑바로'], ['turn left', '왼쪽으로 돌다'], ['on foot', '걸어서'], ['museum', '박물관, 미술관']],
+    keyExpressions: [
+      ['How do I get to …?', '…에 어떻게 가요?', '길을 물을 때 가장 기본적인 질문이에요.'],
+      ['Is it within walking distance?', '걸어갈 수 있는 거리예요?', 'within = ~ 이내에.'],
+    ],
+    conceptIds: [],
+    q1: { prompt: '어디에서 왼쪽으로 돌아야 하나요?', options: ['은행', '우체국', '병원', '지하철역'], answer: '은행', explanation: 'Go straight and turn left at the bank.' },
+    q2: { prompt: '미술관까지 걸어서 얼마나 걸리나요?', options: ['10분 정도', '5분 정도', '20분 정도', '걸어갈 수 없다'], answer: '10분 정도', explanation: "Yes, it's about ten minutes on foot." },
+    dictation: { line: 1, word: 'left', explanation: 'turn left = 왼쪽으로 돌다. 오른쪽은 right.' },
+  }),
+  SIT({
+    id: 'sx-04',
+    title: '옷 가게에서',
+    situation: '옷 가게에서 사이즈를 묻고 입어 봐요.',
+    A: ['Clerk', 'female'],
+    B: ['Ryan', 'male'],
+    lines: [
+      ['A', 'Hi there. Can I help you find anything?', '안녕하세요. 찾으시는 것 있으세요?'],
+      ['B', 'Yes. Do you have this shirt in a medium?', '네. 이 셔츠 미디엄 사이즈 있어요?'],
+      ['A', 'Let me check. Yes, here you go.', '확인해 볼게요. 네, 여기 있어요.'],
+      ['B', 'Thanks. Can I try it on?', '감사해요. 입어 봐도 돼요?'],
+      ['A', 'Of course. The fitting room is over there.', '물론이죠. 탈의실은 저쪽이에요.'],
+      ['B', 'It fits well. I\'ll take it.', '잘 맞네요. 이걸로 살게요.'],
+    ],
+    keyWords: [['medium', '중간 사이즈'], ['try on', '입어 보다'], ['fitting room', '탈의실'], ['fit', '(크기가) 맞다']],
+    keyExpressions: [
+      ['Can I try it on?', '입어 봐도 돼요?', '대명사 it은 try와 on 사이에 넣어요.'],
+      ["I'll take it.", '이걸로 살게요.', '사기로 결정했을 때 쓰는 자연스러운 표현이에요.'],
+    ],
+    conceptIds: [],
+    q1: { prompt: '손님이 찾는 사이즈는?', options: ['미디엄', '스몰', '라지', '엑스라지'], answer: '미디엄', explanation: 'Do you have this shirt in a medium?' },
+    q2: { prompt: '결과적으로 손님은 어떻게 하나요?', options: ['잘 맞아서 산다', '너무 커서 사지 않는다', '다른 색으로 바꾼다', '환불한다'], answer: '잘 맞아서 산다', explanation: "It fits well. I'll take it." },
+    dictation: { line: 5, word: 'take', explanation: "I'll take it. — 이걸로 살게요." },
+  }),
+  SIT({
+    id: 'sx-05',
+    title: '식당 예약 전화',
+    situation: '전화로 주말 저녁 식당을 예약해요.',
+    A: ['Host', 'male'],
+    B: ['Jiyeon', 'female'],
+    lines: [
+      ['A', 'Good afternoon, Rosa Restaurant.', '안녕하세요, 로사 레스토랑입니다.'],
+      ['B', "Hi, I'd like to book a table for Saturday.", '안녕하세요, 토요일에 자리를 예약하고 싶어요.'],
+      ['A', 'Sure. For how many people?', '네. 몇 분이세요?'],
+      ['B', 'Four people, at seven p.m.', '네 명이요, 저녁 7시요.'],
+      ['A', 'Okay. Can I have your name, please?', '알겠습니다. 성함을 알려 주시겠어요?'],
+      ['B', "It's Park. Thank you.", '박이에요. 감사합니다.'],
+    ],
+    keyWords: [['book', '예약하다'], ['table', '(식당) 자리'], ['people', '사람들'], ['p.m.', '오후']],
+    keyExpressions: [
+      ["I'd like to book a table for …", '…에 자리를 예약하고 싶어요.', 'book = reserve(예약하다).'],
+      ['For how many people?', '몇 분이세요?', '인원을 묻는 질문이에요.'],
+    ],
+    conceptIds: [],
+    q1: { prompt: '예약한 요일과 시간은?', options: ['토요일 저녁 7시', '금요일 저녁 7시', '토요일 낮 12시', '일요일 저녁 6시'], answer: '토요일 저녁 7시', explanation: "I'd like to book a table for Saturday. … at seven p.m." },
+    q2: { prompt: '몇 명이 가나요?', options: ['4명', '2명', '6명', '7명'], answer: '4명', explanation: 'Four people, at seven p.m.' },
+    dictation: { line: 1, word: 'book', explanation: 'book a table = 식당 자리를 예약하다.' },
+  }),
+  SIT({
+    id: 'sx-06',
+    title: '공항 체크인',
+    situation: '공항 카운터에서 탑승 수속을 해요.',
+    A: ['Agent', 'female'],
+    B: ['Minsu', 'male'],
+    lines: [
+      ['A', 'Can I see your passport, please?', '여권 보여 주시겠어요?'],
+      ['B', 'Here it is.', '여기 있어요.'],
+      ['A', 'Thank you. How many bags are you checking?', '감사합니다. 짐은 몇 개 부치세요?'],
+      ['B', 'Just one. Can I have a window seat?', '하나요. 창가 자리로 주실 수 있나요?'],
+      ['A', 'Sure. Your gate is twelve, and boarding starts at ten thirty.', '네. 게이트는 12번이고 탑승은 10시 30분에 시작해요.'],
+      ['B', 'Gate twelve at ten thirty. Got it.', '12번 게이트, 10시 30분. 알겠어요.'],
+    ],
+    keyWords: [['passport', '여권'], ['check (a bag)', '(짐을) 부치다'], ['gate', '탑승구'], ['boarding', '탑승']],
+    keyExpressions: [
+      ['How many bags are you checking?', '짐 몇 개 부치세요?', '공항 직원이 꼭 묻는 질문이에요.'],
+      ['Can I have a window seat?', '창가 자리로 주실 수 있나요?', '통로 쪽은 aisle seat예요.'],
+    ],
+    conceptIds: [],
+    q1: { prompt: '부치는 짐은 몇 개인가요?', options: ['1개', '2개', '3개', '없다'], answer: '1개', explanation: 'How many bags are you checking? — Just one.' },
+    q2: { prompt: '탑승구와 탑승 시작 시간은?', options: ['12번, 10시 30분', '2번, 10시', '12번, 11시 30분', '20번, 10시 30분'], answer: '12번, 10시 30분', explanation: 'Your gate is twelve, and boarding starts at ten thirty.' },
+    dictation: { line: 3, word: 'window', explanation: 'window seat = 창가 자리.' },
+  }),
+  SIT({
+    id: 'sx-07',
+    title: '약국에서',
+    situation: '감기 증상을 말하고 약을 사요.',
+    A: ['Pharmacist', 'male'],
+    B: ['Yuri', 'female'],
+    lines: [
+      ['A', 'Hello. What can I do for you?', '안녕하세요. 무엇을 도와드릴까요?'],
+      ['B', 'I have a bad cold. I have a sore throat and a runny nose.', '감기가 심해요. 목이 아프고 콧물이 나요.'],
+      ['A', 'Do you have a fever?', '열도 있나요?'],
+      ['B', "No, I don't.", '아니요, 없어요.'],
+      ['A', 'Take this medicine three times a day after meals.', '이 약을 하루 세 번 식후에 드세요.'],
+      ['B', 'Okay. Thank you.', '네. 감사합니다.'],
+    ],
+    keyWords: [['cold', '감기'], ['sore throat', '인후통'], ['runny nose', '콧물'], ['fever', '열']],
+    keyExpressions: [
+      ['I have a sore throat.', '목이 아파요.', '증상은 I have a + 증상으로 말해요.'],
+      ['three times a day after meals', '하루 세 번 식후에', '복용법을 들을 때 꼭 알아야 하는 표현이에요.'],
+    ],
+    conceptIds: ['a1-present'],
+    q1: { prompt: '손님의 증상은?', options: ['목이 아프고 콧물이 난다', '열이 나고 머리가 아프다', '배가 아프다', '기침과 열이 난다'], answer: '목이 아프고 콧물이 난다', explanation: 'I have a sore throat and a runny nose. 열은 없어요.' },
+    q2: { prompt: '약은 어떻게 먹어야 하나요?', options: ['하루 세 번 식후', '하루 한 번 자기 전', '하루 두 번 식전', '아플 때만'], answer: '하루 세 번 식후', explanation: 'Take this medicine three times a day after meals.' },
+    dictation: { line: 1, word: 'throat', explanation: 'sore throat = 목 아픔(인후통).' },
+  }),
+  SIT({
+    id: 'sx-08',
+    title: '회의 일정 바꾸기',
+    situation: '동료에게 전화해 회의 시간을 바꿔요.',
+    A: ['Sarah', 'female'],
+    B: ['Tom', 'male'],
+    lines: [
+      ['A', "Hi, Tom. It's Sarah. Something came up. Could we reschedule our meeting?", '안녕 톰, 사라예요. 일이 좀 생겼어요. 회의 일정을 바꿀 수 있을까요?'],
+      ['B', 'Sure. When are you free?', '그럼요. 언제 시간 되세요?'],
+      ['A', 'How about Thursday at two?', '목요일 2시 어때요?'],
+      ['B', "I'm afraid I can't make it then. Is three okay?", '그때는 어려울 것 같아요. 3시 괜찮아요?'],
+      ['A', 'Three works for me.', '3시 괜찮아요.'],
+      ['B', 'Great. See you on Thursday.', '좋아요. 목요일에 봬요.'],
+    ],
+    keyWords: [['reschedule', '일정을 다시 잡다'], ['free', '시간이 되는'], ['come up', '(일이) 생기다'], ['work for', '~에게 괜찮다']],
+    keyExpressions: [
+      ['Could we reschedule?', '일정을 바꿀 수 있을까요?', '정중하게 일정 변경을 요청해요.'],
+      ["I'm afraid I can't make it.", '아쉽지만 어려울 것 같아요.', 'make it = 시간 맞춰 가다.'],
+    ],
+    conceptIds: [],
+    q1: { prompt: '새로 정한 회의 시간은?', options: ['목요일 3시', '목요일 2시', '수요일 3시', '금요일 2시'], answer: '목요일 3시', explanation: 'Is three okay? — Three works for me.' },
+    q2: { prompt: '사라가 전화한 이유는?', options: ['일이 생겨 회의 시간을 바꾸려고', '회의를 취소하려고', '회의 장소를 물으려고', '늦는다고 알리려고'], answer: '일이 생겨 회의 시간을 바꾸려고', explanation: 'Something came up. Could we reschedule our meeting?' },
+    dictation: { line: 3, word: 'afraid', explanation: "I'm afraid I can't … — 유감이지만 ~할 수 없어요." },
+  }),
+  SIT({
+    id: 'sx-09',
+    title: '택시 타기',
+    situation: '택시를 타고 기차역으로 가요.',
+    A: ['Driver', 'male'],
+    B: ['Hana', 'female'],
+    lines: [
+      ['A', 'Where to?', '어디로 모실까요?'],
+      ['B', 'Please take me to Central Station.', '중앙역으로 가 주세요.'],
+      ['A', 'Sure. Are you in a hurry?', '네. 급하세요?'],
+      ['B', 'Yes. My train leaves at five.', '네. 기차가 5시에 출발해요.'],
+      ['A', "Don't worry. We'll be there in fifteen minutes.", '걱정 마세요. 15분이면 도착해요.'],
+      ['B', 'Thank you. Can I pay by card?', '감사해요. 카드로 계산해도 되나요?'],
+    ],
+    keyWords: [['station', '역'], ['in a hurry', '급한'], ['leave', '떠나다, 출발하다'], ['pay by card', '카드로 계산하다']],
+    keyExpressions: [
+      ['Please take me to …', '…로 가 주세요.', '택시 목적지를 말하는 기본 표현이에요.'],
+      ['Are you in a hurry?', '급하세요?', 'be in a hurry = 서두르다, 급하다.'],
+    ],
+    conceptIds: ['a1-present'],
+    q1: { prompt: '손님의 목적지는?', options: ['중앙역', '공항', '시청', '호텔'], answer: '중앙역', explanation: 'Please take me to Central Station.' },
+    q2: { prompt: '목적지까지 걸리는 시간은?', options: ['15분', '5분', '50분', '30분'], answer: '15분', explanation: "We'll be there in fifteen minutes." },
+    dictation: { line: 3, word: 'leaves', explanation: 'My train leaves at five. — 정해진 일정은 현재시제로 말해요 (3인칭 단수 leaves).' },
+  }),
+  SIT({
+    id: 'sx-10',
+    title: '환불 요청하기',
+    situation: '어제 산 신발을 환불하러 가게에 왔어요.',
+    A: ['Emily', 'female'],
+    B: ['Clerk', 'male'],
+    lines: [
+      ['A', "Hi. I bought these shoes yesterday, but they're too small.", '안녕하세요. 어제 이 신발을 샀는데 너무 작아요.'],
+      ['B', "I'm sorry about that. Do you want to exchange them?", '죄송합니다. 교환하시겠어요?'],
+      ['A', "No, I'd like a refund, please.", '아니요, 환불받고 싶어요.'],
+      ['B', 'Okay. Do you have the receipt?', '알겠습니다. 영수증 있으세요?'],
+      ['A', 'Yes, here it is.', '네, 여기요.'],
+      ['B', 'Thank you. The money will go back to your card.', '감사합니다. 돈은 카드로 다시 들어갈 거예요.'],
+    ],
+    keyWords: [['exchange', '교환하다'], ['refund', '환불'], ['receipt', '영수증'], ['too small', '너무 작은']],
+    keyExpressions: [
+      ["I'd like a refund, please.", '환불받고 싶어요.', '교환은 exchange, 환불은 refund예요.'],
+      ['Do you have the receipt?', '영수증 있으세요?', '환불·교환 때 직원이 꼭 묻는 질문이에요.'],
+    ],
+    conceptIds: [],
+    q1: { prompt: '신발의 문제는?', options: ['너무 작다', '너무 크다', '색이 마음에 안 든다', '망가졌다'], answer: '너무 작다', explanation: "they're too small." },
+    q2: { prompt: '손님이 원하는 것은?', options: ['환불', '교환', '수선', '다른 색'], answer: '환불', explanation: "No, I'd like a refund, please." },
+    dictation: { line: 2, word: 'refund', explanation: "I'd like a refund. — 환불받고 싶어요." },
+  }),
+];
+
 export const lineAudio = (dialogueId: string, i: number) => `audio/listening/${dialogueId}-${i + 1}.mp3`;
 
 function build(r: Raw): { dialogue: Dialogue; questions: Question[] } {
   const lines: DialogueLine[] = r.lines.map(([speaker, en, ko], i) => ({ speaker, en, ko, audio: lineAudio(r.id, i) }));
   const all = lines.map((l) => l.audio);
-  const base = { level: 'A1' as const, unitId: r.id, area: 'listening' as const, role: 'listening' as const, dialogueId: r.id, wordIds: [], conceptIds: r.conceptIds };
+  const level = r.level ?? 'A1';
+  const base = { level, unitId: r.id, area: 'listening' as const, role: 'listening' as const, dialogueId: r.id, wordIds: [], conceptIds: r.conceptIds };
   const mk = (n: 1 | 2, q: Raw['q1']): Question => ({
     ...base,
     id: `${r.id}-q${n}`,
@@ -304,7 +555,8 @@ function build(r: Raw): { dialogue: Dialogue; questions: Question[] } {
   return {
     dialogue: {
       id: r.id,
-      level: 'A1',
+      level,
+      situational: !!r.situational,
       title: r.title,
       situation: r.situation,
       speakers: { A: { name: r.A[0], voice: r.A[1] }, B: { name: r.B[0], voice: r.B[1] } },
@@ -318,7 +570,7 @@ function build(r: Raw): { dialogue: Dialogue; questions: Question[] } {
   };
 }
 
-const built = RAW.map(build);
+const built = [...RAW, ...RAW_SITUATIONS].map(build);
 export const dialogues: Dialogue[] = built.map((b) => b.dialogue);
 export const listeningQuestions: Question[] = built.flatMap((b) => b.questions);
 export const getDialogue = (id: string) => dialogues.find((d) => d.id === id);

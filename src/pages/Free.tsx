@@ -60,16 +60,27 @@ export default function Free() {
           </button>
         </section>
 
+        <button type="button" onClick={() => navigate('/expressions')} className="card w-full p-4 flex items-center gap-3 text-left active:bg-surface">
+          <span className="w-11 h-11 rounded-xl bg-brand-soft text-brand flex items-center justify-center shrink-0">
+            <Icon name="note" size={22} />
+          </span>
+          <span className="flex-1">
+            <span className="block font-semibold">표현 학습관</span>
+            <span className="block text-xs text-ink-sub">회화·여행·비즈니스·구동사 150개 + 상황별 듣기·말하기</span>
+          </span>
+          <Icon name="chevron" size={18} className="text-ink-mute" />
+        </button>
+
         <section className="grid grid-cols-2 gap-2">
           <button type="button" onClick={() => navigate(`/free/listening?level=${level}`)} className="card p-4 text-left active:bg-surface min-h-[104px]">
             <Icon name="headphones" size={22} className="text-brand" />
             <p className="font-semibold mt-2">듣기</p>
-            <p className="text-xs text-ink-sub">{level === 'A1' ? '실생활 대화 10편 · 받아쓰기' : '준비 중'}</p>
+            <p className="text-xs text-ink-sub">{level === 'A1' ? '실생활 대화 10편 · 받아쓰기' : level === 'A2' ? '상황별 대화 10편' : '준비 중'}</p>
           </button>
           <button type="button" onClick={() => navigate(`/free/speaking?level=${level}`)} className="card p-4 text-left active:bg-surface min-h-[104px]">
             <Icon name="mic" size={22} className="text-brand" />
             <p className="font-semibold mt-2">말하기</p>
-            <p className="text-xs text-ink-sub">{level === 'A1' ? '따라 말하기 30문장' : '준비 중'}</p>
+            <p className="text-xs text-ink-sub">{level === 'A1' ? '따라 말하기 30문장' : level === 'A2' ? '상황별 핵심 문장 10' : '준비 중'}</p>
           </button>
         </section>
 

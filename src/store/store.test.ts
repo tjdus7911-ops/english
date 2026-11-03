@@ -127,4 +127,18 @@ describe('학습 기록 저장소 (복습·알림 연동)', () => {
     st().recordSpeaking({ sentenceId: 's-a1-23', mode: 'stt', recognized: 'she studies japanese', matchRate: 100, missing: [], extra: [], substituted: [] }, true);
     expect(st().reviews['s:s-a1-23'].stage).toBe(1);
   });
+
+  it('표현: 저장 → 복습 등록, 오답 → 표현 복습, 완료 이벤트는 한 번만', () => {
+    st().toggleSaveExpression('ex-tr-001');
+    expect(st().savedExpressions).toContain('ex-tr-001');
+    expect(st().reviews['x:ex-tr-001']).toBeDefined();
+    st().recordAnswer(getQuestion('xq-m-ex-ph-007')!, 'x', false, 'free', 's');
+    expect(st().reviews['x:ex-ph-007'].lapses).toBe(1);
+    expect(st().wrongNotes['xq-m-ex-ph-007']).toBeDefined();
+    expect(st().recordCompletion('expr:ex-tr-001')).toBe(true);
+    expect(st().recordCompletion('expr:ex-tr-001')).toBe(false);
+    expect(Object.keys(st().completionEvents)).toEqual(['expr:ex-tr-001']);
+    const q = buildReviewQueue(st().reviews, st().wrongNotes, st().answers, 10, Date.now());
+    expect(q.find((x) => x.key === 'x:ex-tr-001')?.question.id).toBe('xq-l-ex-tr-001');
+  });
 });

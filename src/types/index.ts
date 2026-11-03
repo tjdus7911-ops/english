@@ -164,6 +164,8 @@ export interface Question {
   audio?: string[];
   /** 듣기 문항이 속한 대화 */
   dialogueId?: string;
+  /** 표현 학습관 문항이 속한 표현 */
+  expressionId?: string;
   variantOf?: string;
   /** 커리큘럼 안에서의 용도 */
   role: 'practice' | 'writing' | 'test' | 'variant' | 'placement' | 'listening';
@@ -286,7 +288,7 @@ export interface UserMastery {
 }
 
 /** 복습 항목: 단어(w:) 또는 문법 개념(c:) 단위로 하나씩만 존재 (중복 일정 방지) */
-export type ReviewKind = 'word' | 'concept' | 'listening' | 'speaking';
+export type ReviewKind = 'word' | 'concept' | 'listening' | 'speaking' | 'expression';
 
 export type MemoryState = 'new' | 'due' | 'learning' | 'stable' | 'relearn';
 
@@ -328,7 +330,7 @@ export interface WrongNote {
   resolvedAt?: number;
 }
 
-export type SessionType = 'listening' | 'speaking' | 'course' | 'skip-test' | 'free-words' | 'word-quiz' | 'grammar' | 'practice' | 'review' | 'wrong-note' | 'placement';
+export type SessionType = 'expression' | 'listening' | 'speaking' | 'course' | 'skip-test' | 'free-words' | 'word-quiz' | 'grammar' | 'practice' | 'review' | 'wrong-note' | 'placement';
 
 export interface LearningSession {
   id: string;
@@ -409,6 +411,8 @@ export interface Dialogue {
   /** 연결 문법 (커리큘럼 연동) */
   conceptIds: string[];
   questionIds: string[];
+  /** 표현 학습관 상황별 콘텐츠 */
+  situational?: boolean;
 }
 
 export interface SpeakingSentence {
@@ -442,4 +446,57 @@ export interface ListeningRecord {
   correct: number;
   total: number;
   attempts: number;
+}
+
+// ─────────────────────────────────────────────────────────────
+// 표현 학습관
+// ─────────────────────────────────────────────────────────────
+
+export type ExpressionCategory = 'essential' | 'travel' | 'business' | 'phrasal' | 'situational' | 'video';
+
+export interface Expression {
+  id: string;
+  category: ExpressionCategory;
+  level: Level;
+  en: string;
+  ko: string;
+  tags: string[];
+  situation: string;
+  nuance: string;
+  similar: { en: string; diff: string }[];
+  /** 대화 예문 2줄 (음성 포함) */
+  dialogue: { speaker: 'A' | 'B'; en: string; ko: string; audio: string }[];
+  /** 대화 중 표현이 쓰인 줄과 실제 형태 */
+  usedIn: { line: number; span: string };
+  practice: { en: string; ko: string };
+  conceptId?: string;
+  audio: string;
+  questionIds: string[];
+}
+
+export type VideoSource = 'original' | 'ai-licensed' | 'commercial-license' | 'permission';
+
+/** 영상 콘텐츠 권리 확인 기록 */
+export interface VideoRightsRecord {
+  source: VideoSource;
+  owner: string;
+  license: string;
+  thirdPartyMaterial: boolean;
+  checkedAt: string | null;
+  checkedBy: string | null;
+  note: string;
+}
+
+export interface MiniDrama {
+  id: string;
+  title: string;
+  level: Level;
+  durationSec: number;
+  synopsis: string;
+  status: 'planned' | 'in-production' | 'published';
+  /** 영상 에셋 경로 (제작 전 null) */
+  video: string | null;
+  scriptDraft: { speaker: string; en: string; ko: string }[];
+  keyExpressionIds: string[];
+  rights: VideoRightsRecord;
 }

@@ -34,9 +34,32 @@ const RAW: [en: string, ko: string, conceptId?: string, dialogueId?: string, tip
   ["Let's get something to eat.", '뭐 좀 먹자.', undefined, 'l-a1-03'],
 ];
 
-export const speakingSentences: SpeakingSentence[] = RAW.map(([en, ko, conceptId, dialogueId, tip], i) => {
+/** 상황별 듣기·말하기 핵심 문장 (A2) */
+const RAW_A2: [en: string, ko: string, dialogueId: string][] = [
+  ['Can I get a large iced latte, please?', '아이스 라테 큰 사이즈로 주시겠어요?', 'sx-01'],
+  ["I'd like to check in.", '체크인하고 싶어요.', 'sx-02'],
+  ['How do I get to the art museum?', '미술관에 어떻게 가요?', 'sx-03'],
+  ['Can I try it on?', '입어 봐도 돼요?', 'sx-04'],
+  ["I'd like to book a table for Saturday.", '토요일에 자리를 예약하고 싶어요.', 'sx-05'],
+  ['Can I have a window seat?', '창가 자리로 주실 수 있나요?', 'sx-06'],
+  ['I have a sore throat and a runny nose.', '목이 아프고 콧물이 나요.', 'sx-07'],
+  ['Could we reschedule our meeting?', '회의 일정을 바꿀 수 있을까요?', 'sx-08'],
+  ['Please take me to Central Station.', '중앙역으로 가 주세요.', 'sx-09'],
+  ["I'd like a refund, please.", '환불받고 싶어요.', 'sx-10'],
+];
+
+const a1: SpeakingSentence[] = RAW.map(([en, ko, conceptId, dialogueId, tip], i) => {
   const id = `s-a1-${String(i + 1).padStart(2, '0')}`;
   return { id, level: 'A1', en, ko, conceptId, dialogueId, tip, audio: `audio/speaking/${id}.mp3` };
 });
 
-export const getSpeaking = (id: string) => speakingSentences.find((s) => s.id === id);
+const a2: SpeakingSentence[] = RAW_A2.map(([en, ko, dialogueId], i) => {
+  const id = `s-a2-${String(i + 1).padStart(2, '0')}`;
+  return { id, level: 'A2', en, ko, dialogueId, audio: `audio/speaking/${id}.mp3` };
+});
+
+export const speakingSentences: SpeakingSentence[] = [...a1, ...a2];
+
+/** 표현 학습관 따라 말하기 문장 (표현이 쓰인 대사) */
+export const expressionSpeaking: SpeakingSentence[] = [];
+export const getSpeaking = (id: string) => speakingSentences.find((s) => s.id === id) ?? expressionSpeaking.find((s) => s.id === id);

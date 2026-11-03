@@ -2,14 +2,15 @@ import { POLICY } from '../config/policy';
 import { getConcept, getQuestion, getWord, questionsForConcept, courseQuestions } from '../data';
 import { getDialogue } from '../data/listening';
 import { getSpeaking } from '../data/speaking';
+import { getExpression } from '../data/expressions';
 import type { MemoryState, Question, QuestionType, ReviewKind, ReviewSchedule, UserAnswer, WrongNote } from '../types';
 import { DAY_MS, endOfDay, startOfDay } from './util';
 
 const INTERVALS = POLICY.review.intervalsDays;
 export const MAX_STAGE = INTERVALS.length - 1;
 
-const PREFIX: Record<ReviewKind, string> = { word: 'w', concept: 'c', listening: 'l', speaking: 's' };
-const KIND: Record<string, ReviewKind> = { w: 'word', c: 'concept', l: 'listening', s: 'speaking' };
+const PREFIX: Record<ReviewKind, string> = { word: 'w', concept: 'c', listening: 'l', speaking: 's', expression: 'x' };
+const KIND: Record<string, ReviewKind> = { w: 'word', c: 'concept', l: 'listening', s: 'speaking', x: 'expression' };
 export const itemKey = (kind: ReviewKind, id: string) => `${PREFIX[kind]}:${id}`;
 export const parseKey = (key: string): { kind: ReviewKind; refId: string } => ({ kind: KIND[key[0]] ?? 'concept', refId: key.slice(2) });
 
@@ -100,7 +101,16 @@ function listeningCandidates(dialogueId: string, stage: number): Question[] {
   return order.map((_, i) => order[(stage + i) % order.length]);
 }
 
+/** 표현 복습: 듣고 빈칸 → 뜻 → 응용 배열 순으로 유형을 바꿔 가며 */
+function expressionCandidates(id: string, stage: number): Question[] {
+  const e = getExpression(id);
+  if (!e) return [];
+  const order = ['xq-l-', 'xq-m-', 'xq-o-'].map((p) => getQuestion(p + id)).filter((x): x is Question => !!x);
+  return order.map((_, i) => order[(stage + i) % order.length]);
+}
+
 export function itemTitle(r: { kind: ReviewKind; refId: string }): string {
+  if (r.kind === 'expression') return getExpression(r.refId)?.en ?? r.refId;
   if (r.kind === 'word') return getWord(r.refId)?.word ?? r.refId;
   if (r.kind === 'concept') return getConcept(r.refId)?.title ?? r.refId;
   if (r.kind === 'listening') return getDialogue(r.refId)?.title ?? r.refId;
@@ -139,7 +149,7 @@ export function buildReviewQueue(
   const out: ReviewItem[] = [];
   for (const r of due) {
     if (out.length >= limit) break;
-    const cands = r.kind === 'word' ? wordCandidates(r.refId, r.stage) : r.kind === 'listening' ? listeningCandidates(r.refId, r.stage) : conceptCandidates(r.refId, r.stage, wrongNotes);
+    const cands = r.kind === 'word' ? wordCandidates(r.refId, r.stage) : r.kind === 'listening' ? listeningCandidates(r.refId, r.stage) : r.kind === 'expression' ? expressionCandidates(r.refId, r.stage) : conceptCandidates(r.refId, r.stage, wrongNotes);
     const q = cands.find((c) => !used.has(c.id) && !answeredTodayOk.has(c.id)) ?? cands.find((c) => !used.has(c.id));
     if (!q) continue;
     used.add(q.id);
@@ -170,6 +180,7 @@ export interface ReviewSummary {
   dueWords: number;
   dueConcepts: number;
   dueListening: number;
+  dueExpressions: number;
   /** 따라 말하기 재연습 (문제 풀이 목록과 별도) */
   dueSpeaking: number;
   dueTotal: number;
@@ -192,11 +203,13 @@ export function reviewSummary(reviews: Record<string, ReviewSchedule>, perDay: n
   const sorted = sortDue(due, now).slice(0, todayCount);
   const dueWords = sorted.filter((r) => r.kind === 'word').length;
   const dueListening = sorted.filter((r) => r.kind === 'listening').length;
+  const dueExpressions = sorted.filter((r) => r.kind === 'expression').length;
   const total = doneToday + todayCount;
   return {
     dueWords,
-    dueConcepts: sorted.length - dueWords - dueListening,
+    dueConcepts: sorted.length - dueWords - dueListening - dueExpressions,
     dueListening,
+    dueExpressions,
     dueSpeaking,
     dueTotal: due.length,
     todayCount,

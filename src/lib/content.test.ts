@@ -180,3 +180,53 @@ describe('듣기·말하기 콘텐츠', async () => {
     expect(compareSentence('Nice to meet you.', '').matchRate).toBe(0);
   });
 });
+
+describe('표현 학습관 콘텐츠', async () => {
+  const { existsSync } = await import('node:fs');
+  const { expressions, EXPRESSION_CATEGORIES } = await import('../data/expressions');
+  const { miniDramas } = await import('../data/expressions/videos');
+  const { dialogues } = await import('../data/listening');
+
+  it('카테고리 6개, 목표 분량 (회화 50·여행 30·비즈니스 20·구동사 50·상황 10·드라마 3)', () => {
+    expect(EXPRESSION_CATEGORIES).toHaveLength(6);
+    const n = (c: string) => expressions.filter((e) => e.category === c).length;
+    expect([n('essential'), n('travel'), n('business'), n('phrasal')]).toEqual([50, 30, 20, 50]);
+    expect(dialogues.filter((d) => d.situational)).toHaveLength(10);
+    expect(miniDramas).toHaveLength(3);
+  });
+
+  it('모든 표현에 뜻·상황·뉘앙스(한국어 해설)·레벨·태그·대화·음성', () => {
+    const seen = new Set<string>();
+    for (const e of expressions) {
+      expect(seen.has(e.en.toLowerCase()), `중복 ${e.en}`).toBe(false);
+      seen.add(e.en.toLowerCase());
+      expect(e.ko && e.situation && e.nuance, e.id).toBeTruthy();
+      expect(['A1', 'A2', 'B1', 'B2']).toContain(e.level);
+      expect(e.tags.length, e.id).toBeGreaterThan(0);
+      expect(e.dialogue[e.usedIn.line].en, e.id).toContain(e.usedIn.span);
+      for (const f of [e.audio, ...e.dialogue.map((d) => d.audio)]) expect(existsSync(`public/${f}`), f).toBe(true);
+      if (e.conceptId) expect(getConcept(e.conceptId), e.id).toBeDefined();
+      expect(e.questionIds.length, e.id).toBeGreaterThanOrEqual(2);
+      // 듣기 빈칸: 정답을 넣으면 원래 대사
+      const l = getQuestion(`xq-l-${e.id}`)!;
+      expect(l.sentence!.replace('___', l.answer), e.id).toBe(e.dialogue[e.usedIn.line].en);
+    }
+  });
+
+  it('상황별 대화 음성 100%', () => {
+    for (const d of dialogues.filter((x) => x.situational)) for (const l of d.lines) expect(existsSync(`public/${l.audio}`), l.audio).toBe(true);
+  });
+
+  it('영상: 에셋·권리 확인 없이는 공개되지 않는다 (권리 기록 필수)', () => {
+    for (const m of miniDramas) {
+      expect(m.rights.source).toMatch(/original|ai-licensed|commercial-license|permission/);
+      expect(m.rights.owner.length).toBeGreaterThan(0);
+      if (m.status === 'published') {
+        expect(m.video, m.id).toBeTruthy();
+        expect(m.rights.checkedAt, m.id).toBeTruthy();
+        expect(m.rights.thirdPartyMaterial && m.rights.source !== 'permission', m.id).toBe(false);
+      } else expect(m.video, m.id).toBeNull();
+      m.keyExpressionIds.forEach((id) => expect(expressions.some((e) => e.id === id), id).toBe(true));
+    }
+  });
+});

@@ -26,6 +26,7 @@ import NotFound from './pages/NotFound';
 import Notifications from './pages/Notifications';
 import { ListeningDetail, ListeningList } from './pages/Listening';
 import { SpeakingList, SpeakingSession } from './pages/Speaking';
+import { ExpressionDetail, ExpressionHub } from './pages/Expressions';
 import { NotificationRunner } from './components/NotificationCenter';
 
 function ScrollTop() {
@@ -82,6 +83,8 @@ export default function App() {
                 <Route path="/free/listening" element={<ListeningList />} />
                 <Route path="/listening/:dialogueId" element={<ListeningDetail />} />
                 <Route path="/free/speaking" element={<SpeakingList />} />
+                <Route path="/expressions" element={<ExpressionHub />} />
+                <Route path="/expressions/:expressionId" element={<ExpressionDetail />} />
               </Route>
               {/* 몰입형 학습 화면: 하단 내비게이션 숨김 */}
               <Route path="/course/lesson/:lessonId" element={<LessonSession />} />
