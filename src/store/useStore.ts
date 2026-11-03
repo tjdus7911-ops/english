@@ -7,6 +7,8 @@ import type {
   ConceptCheck,
   Level,
   LearningSession,
+  ListeningRecord,
+  SpeakingAttempt,
   LoadDecision,
   NotifSettings,
   Question,
@@ -50,6 +52,10 @@ export interface UserData {
   loadDecision: LoadDecision | null;
   /** 오늘 홈에서 복습을 '나중에'로 미룬 날짜 */
   reviewSnoozedDay: string | null;
+  listeningRecords: Record<string, ListeningRecord>;
+  speakingAttempts: SpeakingAttempt[];
+  /** 녹음·음성 인식 사용 동의 시각 (동의 전에는 마이크를 켜지 않음) */
+  voiceConsentAt: number | null;
 }
 
 interface Actions {
@@ -78,6 +84,10 @@ interface Actions {
   markAllNotifRead: () => void;
   setLoadDecision: (d: LoadDecision) => void;
   snoozeReview: (day: string | null) => void;
+  recordListening: (dialogueId: string, correct: number, total: number) => void;
+  /** 말하기 시도 기록. 누락·다르게 인식된 단어가 있으면 재연습 복습 항목 등록 */
+  recordSpeaking: (a: Omit<SpeakingAttempt, 'id' | 'at'>, asReview: boolean) => void;
+  setVoiceConsent: (on: boolean) => void;
   resetAll: () => void;
 }
 
@@ -120,6 +130,9 @@ export const initialData = (): UserData => ({
   deliveredKeys: [],
   loadDecision: null,
   reviewSnoozedDay: null,
+  listeningRecords: {},
+  speakingAttempts: [],
+  voiceConsentAt: null,
 });
 
 export const useStore = create<UserData & Actions>()(
@@ -163,6 +176,13 @@ export const useStore = create<UserData & Actions>()(
               for (const w of q.wordIds) {
                 const k = itemKey('word', w);
                 if (reviews[k]) reviews[k] = applyAnswer(reviews[k], correct, asReview, now);
+              }
+              if (q.dialogueId) {
+                // 듣기 오답 → 해당 대화 재청취 복습 등록
+                const k = itemKey('listening', q.dialogueId);
+                const prev = reviews[k];
+                if (prev) reviews[k] = applyAnswer(prev, correct, asReview, now);
+                else if (!correct) reviews[k] = applyAnswer(createItem('listening', q.dialogueId, now), false, false, now);
               }
             }
           }
@@ -265,6 +285,30 @@ export const useStore = create<UserData & Actions>()(
       markAllNotifRead: () => set((s) => ({ inbox: s.inbox.map((n) => ({ ...n, read: true })) })),
       setLoadDecision: (d) => set({ loadDecision: d }),
       snoozeReview: (day) => set({ reviewSnoozedDay: day }),
+
+      recordListening: (dialogueId, correct, total) =>
+        set((s) => {
+          const prev = s.listeningRecords[dialogueId];
+          return { listeningRecords: { ...s.listeningRecords, [dialogueId]: { dialogueId, completedAt: Date.now(), correct, total, attempts: (prev?.attempts ?? 0) + 1 } } };
+        }),
+
+      recordSpeaking: (a, asReview) =>
+        set((s) => {
+          const now = Date.now();
+          const attempt: SpeakingAttempt = { ...a, id: uid('sp_'), at: now };
+          const speakingAttempts = [...s.speakingAttempts, attempt].slice(-2000);
+          if (a.mode !== 'stt' || !s.profile.reviewEnabled) return { speakingAttempts };
+          // 인식 기준 '통과'는 누락·다르게 인식된 단어가 없을 때 (발음 숙련도 판정이 아님)
+          const passed = a.missing.length === 0 && a.substituted.length === 0;
+          const k = itemKey('speaking', a.sentenceId);
+          const reviews = { ...s.reviews };
+          const prev = reviews[k];
+          if (prev) reviews[k] = applyAnswer(prev, passed, asReview, now);
+          else if (!passed) reviews[k] = { ...applyAnswer(createItem('speaking', a.sentenceId, now), false, false, now), dueAt: now + 3600_000 };
+          return { speakingAttempts, reviews };
+        }),
+
+      setVoiceConsent: (on) => set({ voiceConsentAt: on ? Date.now() : null }),
 
       resetAll: () => set({ ...initialData() }),
     }),

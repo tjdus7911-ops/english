@@ -3,8 +3,8 @@ import type { Area, GrammarCategory, LearningSession, MemoryState, QuestionType,
 import { memoryState } from './review';
 import { DAY_MS, dayKey, pct, startOfDay } from './util';
 
-export const AREA_LABEL: Record<Area, string> = { vocab: '어휘', grammar: '문법', writing: '영작', reading: '독해·해석' };
-export const AREAS: Area[] = ['vocab', 'grammar', 'writing', 'reading'];
+export const AREA_LABEL: Record<Area, string> = { vocab: '어휘', grammar: '문법', writing: '영작', reading: '독해·해석', listening: '듣기' };
+export const AREAS: Area[] = ['vocab', 'grammar', 'writing', 'reading', 'listening'];
 
 const RECENT_WINDOW = 10;
 export const MIN_ATTEMPTS = 3;
@@ -143,13 +143,8 @@ export const MASTERY_LABEL: Record<UserMastery['state'], string> = {
 
 /** 장기 기억 현황: 복습 항목을 기억 상태별로 집계 */
 export function memoryStats(reviews: Record<string, ReviewSchedule>, now = Date.now()) {
-  const out: Record<MemoryState, { word: number; concept: number }> = {
-    new: { word: 0, concept: 0 },
-    due: { word: 0, concept: 0 },
-    learning: { word: 0, concept: 0 },
-    stable: { word: 0, concept: 0 },
-    relearn: { word: 0, concept: 0 },
-  };
+  const z = () => ({ word: 0, concept: 0, listening: 0, speaking: 0 });
+  const out: Record<MemoryState, Record<ReviewSchedule['kind'], number>> = { new: z(), due: z(), learning: z(), stable: z(), relearn: z() };
   Object.values(reviews).forEach((r) => out[memoryState(r, now)][r.kind]++);
   return out;
 }

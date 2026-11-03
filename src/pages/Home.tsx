@@ -73,8 +73,8 @@ export default function Home() {
                   <p className="text-xl font-bold tabular-nums">{sum.dueWords}</p>
                 </div>
                 <div className="rounded-xl bg-surface p-3">
-                  <p className="text-xs text-ink-sub">문법</p>
-                  <p className="text-xl font-bold tabular-nums">{sum.dueConcepts}</p>
+                  <p className="text-xs text-ink-sub">문법{sum.dueListening ? '·듣기' : ''}</p>
+                  <p className="text-xl font-bold tabular-nums">{sum.dueConcepts + sum.dueListening}</p>
                 </div>
                 <div className="rounded-xl bg-surface p-3">
                   <p className="text-xs text-ink-sub">예상 시간</p>
@@ -85,6 +85,12 @@ export default function Home() {
                 </div>
               </div>
               <ProgressBar value={sum.completion} className="mt-3" label="오늘 복습 완료율" />
+              {sum.dueSpeaking > 0 && (
+                <button type="button" onClick={() => navigate('/speaking?review=1')} className="mt-2 text-sm text-brand-dark font-semibold flex items-center gap-1 min-h-[36px]">
+                  <Icon name="mic" size={14} />
+                  따라 말하기 재연습 {sum.dueSpeaking}문장
+                </button>
+              )}
               {sum.deferred > 0 && <p className="text-xs text-ink-sub mt-2">하루 복습량({profile.reviewPerDay}개)을 넘는 {sum.deferred}개는 다음 날로 나눠 드려요. 밀려도 불이익은 없어요.</p>}
               <div className="flex gap-2 mt-4">
                 <button type="button" className="btn-primary flex-[2]" onClick={() => navigate('/review')}>
@@ -175,6 +181,7 @@ export default function Home() {
                 <li>단어 {plan.wordIds.length}</li>
                 <li>문법 강의 1</li>
                 <li>확인 문제 {plan.check.length}</li>
+                {lesson.level === 'A1' && <li>대화 듣기·따라 말하기</li>}
                 <li>영작 {plan.writing.length}</li>
                 <li>마무리 테스트 {plan.test.length}</li>
               </ul>

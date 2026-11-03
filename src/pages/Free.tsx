@@ -60,6 +60,19 @@ export default function Free() {
           </button>
         </section>
 
+        <section className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => navigate(`/free/listening?level=${level}`)} className="card p-4 text-left active:bg-surface min-h-[104px]">
+            <Icon name="headphones" size={22} className="text-brand" />
+            <p className="font-semibold mt-2">듣기</p>
+            <p className="text-xs text-ink-sub">{level === 'A1' ? '실생활 대화 10편 · 받아쓰기' : '준비 중'}</p>
+          </button>
+          <button type="button" onClick={() => navigate(`/free/speaking?level=${level}`)} className="card p-4 text-left active:bg-surface min-h-[104px]">
+            <Icon name="mic" size={22} className="text-brand" />
+            <p className="font-semibold mt-2">말하기</p>
+            <p className="text-xs text-ink-sub">{level === 'A1' ? '따라 말하기 30문장' : '준비 중'}</p>
+          </button>
+        </section>
+
         <section className="card divide-y divide-line">
           <ListRow icon="bookmark" title={`${level} 단어장`} desc={`${words.length}개 단어 · 뜻·발음·예문`} onClick={() => navigate(`/free/words?level=${level}`)} />
           <ListRow icon="check" title="단어 퀴즈" desc="뜻 고르기 · 단어 고르기 10문제" onClick={() => navigate(`/free/word-quiz?level=${level}`)} />

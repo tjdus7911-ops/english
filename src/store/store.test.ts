@@ -101,4 +101,30 @@ describe('학습 기록 저장소 (복습·알림 연동)', () => {
     expect(st().wrongNotes['a1-q04']).toBeDefined();
     expect(st().notifSettings.time).toBe('09:15');
   });
+
+  it('듣기 오답 → 재청취 복습 등록, 학습 기록 저장', () => {
+    st().recordAnswer(getQuestion('l-a1-03-d1')!, 'hungy', false, 'free', 's');
+    st().recordListening('l-a1-03', 2, 3);
+    expect(st().reviews['l:l-a1-03'].lapses).toBe(1);
+    expect(st().listeningRecords['l-a1-03']).toMatchObject({ correct: 2, total: 3, attempts: 1 });
+    const q = buildReviewQueue(st().reviews, st().wrongNotes, st().answers, 5, Date.now());
+    const l = q.find((x) => x.key === 'l:l-a1-03')!;
+    expect(l).toBeDefined();
+    expect(l.question.audio?.length).toBeGreaterThan(0);
+    expect(l.reason).toContain('다시 들어');
+  });
+
+  it('말하기: 누락 단어 → 재연습 등록, 자가 확인 모드는 복습에 반영 안 함, 기록 저장', () => {
+    st().recordSpeaking({ sentenceId: 's-a1-23', mode: 'self', recognized: '', matchRate: 0, missing: [], extra: [], substituted: [] }, false);
+    expect(st().reviews['s:s-a1-23']).toBeUndefined();
+    st().recordSpeaking({ sentenceId: 's-a1-23', mode: 'stt', recognized: 'she study japanese', matchRate: 67, missing: [], extra: [], substituted: [{ expected: 'studies', heard: 'study' }] }, false);
+    expect(st().reviews['s:s-a1-23'].lapses).toBe(1);
+    expect(st().speakingAttempts).toHaveLength(2);
+    // 문제 풀이 복습 목록에는 섞이지 않음
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 2 * DAY_MS);
+    expect(buildReviewQueue(st().reviews, {}, [], 10, Date.now()).some((x) => x.kind === 'speaking')).toBe(false);
+    st().recordSpeaking({ sentenceId: 's-a1-23', mode: 'stt', recognized: 'she studies japanese', matchRate: 100, missing: [], extra: [], substituted: [] }, true);
+    expect(st().reviews['s:s-a1-23'].stage).toBe(1);
+  });
 });

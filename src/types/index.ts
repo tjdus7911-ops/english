@@ -6,7 +6,7 @@ export type Level = 'A1' | 'A2' | 'B1' | 'B2';
 export const LEVELS: Level[] = ['A1', 'A2', 'B1', 'B2'];
 
 /** 실력 지도 영역 */
-export type Area = 'vocab' | 'grammar' | 'writing' | 'reading';
+export type Area = 'vocab' | 'grammar' | 'writing' | 'reading' | 'listening';
 
 export type PartOfSpeech = 'n.' | 'v.' | 'adj.' | 'adv.' | 'prep.' | 'conj.' | 'pron.' | 'phr.';
 
@@ -160,9 +160,13 @@ export interface Question {
   recommendConceptId?: string;
   /** 복습용 변형 문항 여부 (같은 개념, 다른 문장) */
   isVariant?: boolean;
+  /** 듣기 문항: 재생할 음성 (public/ 기준 경로) */
+  audio?: string[];
+  /** 듣기 문항이 속한 대화 */
+  dialogueId?: string;
   variantOf?: string;
   /** 커리큘럼 안에서의 용도 */
-  role: 'practice' | 'writing' | 'test' | 'variant' | 'placement';
+  role: 'practice' | 'writing' | 'test' | 'variant' | 'placement' | 'listening';
   day?: number;
 }
 
@@ -282,12 +286,12 @@ export interface UserMastery {
 }
 
 /** 복습 항목: 단어(w:) 또는 문법 개념(c:) 단위로 하나씩만 존재 (중복 일정 방지) */
-export type ReviewKind = 'word' | 'concept';
+export type ReviewKind = 'word' | 'concept' | 'listening' | 'speaking';
 
 export type MemoryState = 'new' | 'due' | 'learning' | 'stable' | 'relearn';
 
 export interface ReviewSchedule {
-  /** `w:${wordId}` | `c:${conceptId}` */
+  /** `w:단어` | `c:개념` | `l:대화` | `s:말하기 문장` */
   key: string;
   kind: ReviewKind;
   refId: string;
@@ -324,7 +328,7 @@ export interface WrongNote {
   resolvedAt?: number;
 }
 
-export type SessionType = 'course' | 'skip-test' | 'free-words' | 'word-quiz' | 'grammar' | 'practice' | 'review' | 'wrong-note' | 'placement';
+export type SessionType = 'listening' | 'speaking' | 'course' | 'skip-test' | 'free-words' | 'word-quiz' | 'grammar' | 'practice' | 'review' | 'wrong-note' | 'placement';
 
 export interface LearningSession {
   id: string;
@@ -379,4 +383,63 @@ export interface LoadDecision {
   day: string;
   kind: string;
   applied: boolean;
+}
+
+// ─────────────────────────────────────────────────────────────
+// 듣기 · 말하기
+// ─────────────────────────────────────────────────────────────
+
+export interface DialogueLine {
+  speaker: 'A' | 'B';
+  en: string;
+  ko: string;
+  /** public/ 기준 음성 파일 경로 */
+  audio: string;
+}
+
+export interface Dialogue {
+  id: string;
+  level: Level;
+  title: string;
+  situation: string;
+  speakers: { A: { name: string; voice: 'female' | 'male' }; B: { name: string; voice: 'female' | 'male' } };
+  lines: DialogueLine[];
+  keyWords: { en: string; ko: string }[];
+  keyExpressions: { en: string; ko: string; note: string }[];
+  /** 연결 문법 (커리큘럼 연동) */
+  conceptIds: string[];
+  questionIds: string[];
+}
+
+export interface SpeakingSentence {
+  id: string;
+  level: Level;
+  en: string;
+  ko: string;
+  audio: string;
+  conceptId?: string;
+  dialogueId?: string;
+  tip?: string;
+}
+
+export interface SpeakingAttempt {
+  id: string;
+  sentenceId: string;
+  /** stt: 음성 인식 결과 비교 / self: 인식 미지원 환경의 녹음 자가 확인 */
+  mode: 'stt' | 'self';
+  recognized: string;
+  /** 인식 일치도 0~100 (발음 점수 아님) */
+  matchRate: number;
+  missing: string[];
+  extra: string[];
+  substituted: { expected: string; heard: string }[];
+  at: number;
+}
+
+export interface ListeningRecord {
+  dialogueId: string;
+  completedAt: number;
+  correct: number;
+  total: number;
+  attempts: number;
 }

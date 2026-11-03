@@ -5,6 +5,7 @@ import { seededShuffle } from '../lib/util';
 import { MISTAKE_LABEL, QUESTION_TYPE_LABEL, type Question } from '../types';
 import { Icon } from './Icon';
 import { SpeakButton } from './SpeakButton';
+import { AudioButton } from './AudioPlayer';
 
 export interface Checked {
   given: string;
@@ -66,6 +67,16 @@ export function QuestionView({ q, checked, onSubmit }: { q: Question; checked: C
         <span className="chip bg-surface text-ink-sub">{QUESTION_TYPE_LABEL[q.type]}</span>
         <p className="mt-2 text-[15px] font-semibold">{q.prompt}</p>
       </div>
+
+      {q.audio && q.audio.length > 0 && (
+        <div className="card p-4 bg-surface border-none">
+          <p className="text-xs text-ink-sub mb-2 flex items-center gap-1">
+            <Icon name="headphones" size={14} />
+            {q.audio.length > 1 ? '대화를 듣고 답하세요 (여러 번 들어도 돼요)' : '문장을 듣고 답하세요'}
+          </p>
+          <AudioButton files={q.audio} label={q.audio.length > 1 ? '대화 듣기' : '문장 듣기'} />
+        </div>
+      )}
 
       {q.sentence && q.type !== 'blank' && (
         <div className="card p-4 flex items-start gap-2">

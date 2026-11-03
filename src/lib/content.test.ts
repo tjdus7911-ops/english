@@ -128,3 +128,55 @@ describe('콘텐츠 무결성', () => {
     }
   });
 });
+
+describe('듣기·말하기 콘텐츠', async () => {
+  const { existsSync, statSync } = await import('node:fs');
+  const { dialogues } = await import('../data/listening');
+  const { speakingSentences } = await import('../data/speaking');
+  const { compareSentence } = await import('./voice/compare');
+
+  it('A1 듣기 대화 10편 이상, 모든 줄에 실제 음성 파일 (제공률 100%)', () => {
+    expect(dialogues.filter((d) => d.level === 'A1').length).toBeGreaterThanOrEqual(10);
+    for (const d of dialogues)
+      for (const l of d.lines) {
+        expect(existsSync(`public/${l.audio}`), l.audio).toBe(true);
+        expect(statSync(`public/${l.audio}`).size, l.audio).toBeGreaterThan(5000);
+        expect(l.ko.length, d.id).toBeGreaterThan(0);
+      }
+  });
+
+  it('대화마다 제목·핵심 단어·핵심 표현·문제·해설 (해설 제공률 100%)', () => {
+    for (const d of dialogues) {
+      expect(d.title && d.keyWords.length >= 3 && d.keyExpressions.length >= 2, d.id).toBe(true);
+      expect(d.questionIds.length, d.id).toBe(3);
+      for (const id of d.questionIds) {
+        const q = getQuestion(id)!;
+        expect(q.explanation.length, id).toBeGreaterThan(5);
+        expect(q.audio?.length, id).toBeGreaterThan(0);
+        expect(isCorrect(q, q.answer), id).toBe(true);
+      }
+      // 받아쓰기: 빈칸을 채우면 원래 대사
+      const dq = getQuestion(`${d.id}-d1`)!;
+      expect(d.lines.some((l) => dq.sentence!.replace('___', dq.answer) === l.en), d.id).toBe(true);
+    }
+  });
+
+  it('A1 따라 말하기 30문장 이상, 모두 음성 파일 존재, 중복 없음', () => {
+    expect(speakingSentences.length).toBeGreaterThanOrEqual(30);
+    expect(new Set(speakingSentences.map((s) => s.en)).size).toBe(speakingSentences.length);
+    for (const s of speakingSentences) {
+      expect(existsSync(`public/${s.audio}`), s.audio).toBe(true);
+      if (s.conceptId) expect(getConcept(s.conceptId)).toBeDefined();
+    }
+  });
+
+  it('목표 문장 vs 인식 문장 비교: 누락·추가·다르게 인식', () => {
+    expect(compareSentence("I'm a student.", 'I am a student').matchRate).toBe(100);
+    const r = compareSentence('She studies Japanese every day.', 'she study Japanese day today');
+    expect(r.substituted).toEqual([{ expected: 'studies', heard: 'study' }]);
+    expect(r.missing).toEqual(['every']);
+    expect(r.extra).toEqual(['today']);
+    expect(r.matchRate).toBe(60);
+    expect(compareSentence('Nice to meet you.', '').matchRate).toBe(0);
+  });
+});

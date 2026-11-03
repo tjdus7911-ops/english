@@ -145,6 +145,11 @@ try {
   if (await btn('다음 학습 진행').count()) await btn('다음 학습 진행').click();
   else if (await btn('일단 계속 진행').count()) await btn('일단 계속 진행').click();
   else await btn('다음 학습으로').click();
+  // 대화 듣기 → 듣기 문제 → 따라 말하기(마이크 없이 예시 음성만 듣고 넘어가기)
+  await btn('듣기 문제 풀기').click();
+  check('DAY 학습: 문법 → 대화 듣기 → 듣기 문제', (await solveAll(3)) === 3);
+  await btn('다음 문장').click();
+  await btn('영작으로').click();
   await solveAll(4); // 영작 + 마무리 테스트
   await page.getByText('DAY 1 완료!').waitFor();
   await shot('07-lesson-done');

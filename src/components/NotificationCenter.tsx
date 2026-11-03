@@ -5,7 +5,7 @@ import { useStore } from '../store/useStore';
 import type { AppNotification } from '../types';
 import { Icon } from './Icon';
 
-const IMMERSIVE = /^\/(course\/lesson|course\/skip|review|practice|placement|onboarding|free\/word-(study|quiz))/;
+const IMMERSIVE = /^\/(course\/lesson|course\/skip|review|practice|placement|onboarding|speaking|free\/word-(study|quiz))/;
 
 /**
  * 웹앱 알림 실행기: 앱이 열려 있는 동안 1분마다, 그리고 화면으로 돌아올 때 알림 후보를 계산해

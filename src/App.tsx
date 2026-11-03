@@ -24,6 +24,8 @@ import My from './pages/My';
 import SavedWords from './pages/SavedWords';
 import NotFound from './pages/NotFound';
 import Notifications from './pages/Notifications';
+import { ListeningDetail, ListeningList } from './pages/Listening';
+import { SpeakingList, SpeakingSession } from './pages/Speaking';
 import { NotificationRunner } from './components/NotificationCenter';
 
 function ScrollTop() {
@@ -77,6 +79,9 @@ export default function App() {
                 <Route path="/my" element={<My />} />
                 <Route path="/my/saved-words" element={<SavedWords />} />
                 <Route path="/notifications" element={<Notifications />} />
+                <Route path="/free/listening" element={<ListeningList />} />
+                <Route path="/listening/:dialogueId" element={<ListeningDetail />} />
+                <Route path="/free/speaking" element={<SpeakingList />} />
               </Route>
               {/* 몰입형 학습 화면: 하단 내비게이션 숨김 */}
               <Route path="/course/lesson/:lessonId" element={<LessonSession />} />
@@ -85,6 +90,7 @@ export default function App() {
               <Route path="/free/word-quiz" element={<WordQuiz />} />
               <Route path="/practice" element={<Practice />} />
               <Route path="/review" element={<Review />} />
+              <Route path="/speaking" element={<SpeakingSession />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -22,7 +22,7 @@ function Bar({ value, muted }: { value: number; muted?: boolean }) {
 
 export default function Stats() {
   const navigate = useNavigate();
-  const { profile, progress, answers, sessions, wrongNotes, reviews, reviewEvents } = useStore();
+  const { profile, progress, answers, sessions, wrongNotes, reviews, reviewEvents, speakingAttempts } = useStore();
   const now = Date.now();
   const areas = useMemo(() => areaStats(answers), [answers]);
   const cats = useMemo(() => categoryStats(answers), [answers]);
@@ -39,6 +39,8 @@ export default function Stats() {
   const lastWeek = trend.slice(0, 7).reduce((s, d) => ({ a: s.a + d.attempts, c: s.c + d.correct }), { a: 0, c: 0 });
   const recentSessions = [...sessions].filter((s) => s.endedAt).reverse().slice(0, 8);
   const empty = answers.length === 0 && sessions.length === 0;
+  const stt = speakingAttempts.filter((a) => a.mode === 'stt');
+  const speakStat = { n: stt.length, sentences: new Set(speakingAttempts.map((a) => a.sentenceId)).size, avg: stt.length ? Math.round(stt.reduce((x, a) => x + a.matchRate, 0) / stt.length) : 0 };
 
   return (
     <>
@@ -76,8 +78,8 @@ export default function Stats() {
             {MEM_ORDER.map((st) => (
               <li key={st} className="flex items-center text-sm">
                 <span className="flex-1">{MEMORY_LABEL[st]}</span>
-                <span className="text-ink-sub tabular-nums w-28 text-right">
-                  단어 {mem[st].word} · 문법 {mem[st].concept}
+                <span className="text-ink-sub tabular-nums text-right">
+                  단어 {mem[st].word} · 문법 {mem[st].concept} · 듣기 {mem[st].listening} · 말하기 {mem[st].speaking}
                 </span>
               </li>
             ))}
@@ -103,7 +105,13 @@ export default function Stats() {
               </li>
             ))}
           </ul>
-          <p className="text-xs text-ink-sub mt-3">듣기·말하기 영역은 콘텐츠 준비 중이라 측정하지 않아요.</p>
+          <div className="mt-4 rounded-xl bg-surface p-3 text-sm">
+            <p className="font-semibold">말하기 연습 (참고)</p>
+            <p className="text-ink-sub mt-0.5">
+              {speakStat.n ? `${speakStat.sentences}문장 · ${speakStat.n}회 연습 · 평균 인식 일치도 ${speakStat.avg}%` : '아직 말하기 연습 기록이 없어요.'}
+            </p>
+            <p className="text-xs text-ink-mute mt-1">인식 일치도는 음성 인식 결과 비교값이라 실력 지도 점수에 넣지 않아요. 발음 평가는 준비 중이에요.</p>
+          </div>
         </section>
 
         <section className="card p-5">

@@ -108,6 +108,18 @@ export default function My() {
           </div>
         </section>
 
+        <section className="card divide-y divide-line" aria-label="음성 설정">
+          <h2 className="px-4 pt-4 pb-2 font-bold border-none">음성 · 마이크</h2>
+          <Row title="녹음·음성 인식 사용 동의" desc={s.voiceConsentAt ? '동의함 · 끄면 다음 녹음 때 다시 물어봐요.' : '동의 전에는 마이크를 켜지 않아요.'}>
+            <Toggle label="녹음·음성 인식 사용 동의" on={!!s.voiceConsentAt} onChange={(v) => s.setVoiceConsent(v)} />
+          </Row>
+          <div className="px-4 py-3.5 text-xs text-ink-sub space-y-1">
+            <p>· 녹음 파일은 연습 화면에서 다시 듣기용으로만 쓰고 저장·전송하지 않아요.</p>
+            <p>· 음성 인식은 브라우저 기능이며, Chrome 등은 음성을 브라우저 회사 서버로 보내 인식할 수 있어요. 앱에는 인식된 텍스트와 비교 결과만 저장돼요.</p>
+            <p>· 듣기·예시 음성은 오픈 라이선스 TTS(Piper, LibriTTS 모델 · CC BY 4.0)로 만든 합성 음성이에요.</p>
+          </div>
+        </section>
+
         <section className="card divide-y divide-line">
           <ListRow icon="bell" title="알림함" onClick={() => navigate('/notifications')} />
           <ListRow icon="check" title="레벨 테스트 다시 보기" desc="어휘·문법 레벨을 다시 진단해요." onClick={() => navigate('/placement')} />
@@ -121,7 +133,7 @@ export default function My() {
           <p>· 단어·문법 설명·문항은 자체 제작했고, 정답·보기·참조 무결성은 자동 테스트로 검증했어요. 교육 전문가의 최종 검수는 아직 받지 않았어요.</p>
           <p>· 한글 발음은 참고용이에요. 실제 영어 발음은 발음기호와 음성으로 확인하세요.</p>
           <p>· 영작은 정답형 채점이에요. 허용 답안 외의 자연스러운 표현이 오답으로 나올 수 있어요. 자유 영작 첨삭은 아직 지원하지 않아요.</p>
-          <p>· 듣기·말하기·독해 지문 학습은 콘텐츠 준비 중이에요.</p>
+          <p>· 듣기(대화 10편)·말하기(30문장)는 A1만 제공해요. 발음 평가와 독해 지문은 준비 중이에요.</p>
         </section>
 
         <section className="card p-4">

@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon';
 import { QuestionRunner, ResultSummary, type RunResult } from '../components/QuestionRunner';
 import { EmptyState, Header, Page } from '../components/ui';
 import { POLICY } from '../config/policy';
-import { buildReviewQueue, MEMORY_LABEL, memoryState, reviewSummary } from '../lib/review';
+import { buildReviewQueue, isDue, MEMORY_LABEL, memoryState, reviewSummary } from '../lib/review';
 import { useLearningSession } from '../lib/useSession';
 import { formatDate, startOfDay } from '../lib/util';
 import { useStore } from '../store/useStore';
@@ -35,6 +35,19 @@ function ReviewInner({ focus, kind }: { focus?: string; kind?: ReviewKind }) {
   const [items, setItems] = useState(build);
   const [results, setResults] = useState<RunResult[] | null>(null);
 
+  const speakingDue = Object.values(reviews).filter((r) => r.kind === 'speaking' && isDue(r, Date.now())).length;
+  const speakingCard =
+    speakingDue > 0 ? (
+      <button type="button" onClick={() => navigate('/speaking?review=1')} className="card w-full p-4 flex items-center gap-3 text-left active:bg-surface">
+        <Icon name="mic" size={20} className="text-brand" />
+        <span className="flex-1">
+          <span className="block font-semibold">따라 말하기 재연습 {speakingDue}문장</span>
+          <span className="block text-xs text-ink-sub">누락되거나 다르게 인식된 단어가 있었던 문장이에요.</span>
+        </span>
+        <Icon name="chevron" size={16} />
+      </button>
+    ) : null;
+
   if (results) {
     const now = Date.now();
     const sum = reviewSummary(useStore.getState().reviews, profile.reviewPerDay, now);
@@ -44,6 +57,7 @@ function ReviewInner({ focus, kind }: { focus?: string; kind?: ReviewKind }) {
         <Header title="복습 결과" onBack={() => navigate('/home', { replace: true })} />
         <Page className="pb-10">
           <ResultSummary results={results} title="오늘의 복습" />
+          {speakingCard}
           <section className="card">
             <h3 className="px-4 pt-4 pb-1 font-bold">항목별 다음 복습</h3>
             <ul className="divide-y divide-line">
@@ -92,6 +106,7 @@ function ReviewInner({ focus, kind }: { focus?: string; kind?: ReviewKind }) {
       <div className="min-h-screen">
         <Header title="오늘의 복습" back="/home" />
         <Page>
+          {speakingCard}
           {!profile.reviewEnabled ? (
             <EmptyState title="복습 일정이 꺼져 있어요" desc="MY > 학습 설정에서 복습을 켜면 단어·문법별 복습 일정이 만들어져요." action={<button className="btn-secondary" onClick={() => navigate('/my')}>설정으로</button>} />
           ) : upcoming ? (
@@ -107,7 +122,8 @@ function ReviewInner({ focus, kind }: { focus?: string; kind?: ReviewKind }) {
   return (
     <div className="min-h-screen bg-white">
       <Header title="오늘의 복습" sub={`${items.length}문제 · 단계마다 다른 유형으로`} back="/home" />
-      <main className="px-4 py-4 pb-12">
+      <main className="px-4 py-4 pb-12 space-y-4">
+        {speakingCard}
         <QuestionRunner
           key={round}
           questions={items.map((i) => i.question)}

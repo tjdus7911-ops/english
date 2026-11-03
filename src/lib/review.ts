@@ -1,13 +1,17 @@
 import { POLICY } from '../config/policy';
 import { getConcept, getQuestion, getWord, questionsForConcept, courseQuestions } from '../data';
+import { getDialogue } from '../data/listening';
+import { getSpeaking } from '../data/speaking';
 import type { MemoryState, Question, QuestionType, ReviewKind, ReviewSchedule, UserAnswer, WrongNote } from '../types';
 import { DAY_MS, endOfDay, startOfDay } from './util';
 
 const INTERVALS = POLICY.review.intervalsDays;
 export const MAX_STAGE = INTERVALS.length - 1;
 
-export const itemKey = (kind: ReviewKind, id: string) => `${kind === 'word' ? 'w' : 'c'}:${id}`;
-export const parseKey = (key: string): { kind: ReviewKind; refId: string } => ({ kind: key.startsWith('w:') ? 'word' : 'concept', refId: key.slice(2) });
+const PREFIX: Record<ReviewKind, string> = { word: 'w', concept: 'c', listening: 'l', speaking: 's' };
+const KIND: Record<string, ReviewKind> = { w: 'word', c: 'concept', l: 'listening', s: 'speaking' };
+export const itemKey = (kind: ReviewKind, id: string) => `${PREFIX[kind]}:${id}`;
+export const parseKey = (key: string): { kind: ReviewKind; refId: string } => ({ kind: KIND[key[0]] ?? 'concept', refId: key.slice(2) });
 
 /** 학습 직후 생성: 학습 당일 복습(0일)부터 시작 */
 export function createItem(kind: ReviewKind, refId: string, now: number): ReviewSchedule {
@@ -87,6 +91,22 @@ function conceptCandidates(conceptId: string, stage: number, wrongNotes: Record<
   return out;
 }
 
+/** 듣기 복습: 이해도 문제 → 받아쓰기 → 다른 이해도 문제 순으로 다시 듣기 */
+function listeningCandidates(dialogueId: string, stage: number): Question[] {
+  const d = getDialogue(dialogueId);
+  if (!d) return [];
+  const qs = d.questionIds.map((id) => getQuestion(id)!).filter(Boolean);
+  const order = [qs.find((q) => q.id.endsWith('-q1')), qs.find((q) => q.id.endsWith('-d1')), qs.find((q) => q.id.endsWith('-q2'))].filter((x): x is Question => !!x);
+  return order.map((_, i) => order[(stage + i) % order.length]);
+}
+
+export function itemTitle(r: { kind: ReviewKind; refId: string }): string {
+  if (r.kind === 'word') return getWord(r.refId)?.word ?? r.refId;
+  if (r.kind === 'concept') return getConcept(r.refId)?.title ?? r.refId;
+  if (r.kind === 'listening') return getDialogue(r.refId)?.title ?? r.refId;
+  return getSpeaking(r.refId)?.en ?? r.refId;
+}
+
 export interface ReviewItem {
   key: string;
   kind: ReviewKind;
@@ -113,21 +133,23 @@ export function buildReviewQueue(
 ): ReviewItem[] {
   const today = startOfDay(now);
   const answeredTodayOk = new Set(answers.filter((a) => a.at >= today && a.correct).map((a) => a.questionId));
-  const due = sortDue(Object.values(reviews).filter((r) => isDue(r, now) && (!opts.kind || r.kind === opts.kind)), now, opts.focusKey);
+  // 말하기 항목은 문제 풀이가 아니라 따라 말하기 화면에서 복습하므로 제외
+  const due = sortDue(Object.values(reviews).filter((r) => isDue(r, now) && r.kind !== 'speaking' && (!opts.kind || r.kind === opts.kind)), now, opts.focusKey);
   const used = new Set<string>();
   const out: ReviewItem[] = [];
   for (const r of due) {
     if (out.length >= limit) break;
-    const cands = r.kind === 'word' ? wordCandidates(r.refId, r.stage) : conceptCandidates(r.refId, r.stage, wrongNotes);
+    const cands = r.kind === 'word' ? wordCandidates(r.refId, r.stage) : r.kind === 'listening' ? listeningCandidates(r.refId, r.stage) : conceptCandidates(r.refId, r.stage, wrongNotes);
     const q = cands.find((c) => !used.has(c.id) && !answeredTodayOk.has(c.id)) ?? cands.find((c) => !used.has(c.id));
     if (!q) continue;
     used.add(q.id);
     const overdueDays = Math.max(0, Math.floor((today - startOfDay(r.dueAt)) / DAY_MS));
-    const title = r.kind === 'word' ? (getWord(r.refId)?.word ?? r.refId) : (getConcept(r.refId)?.title ?? r.refId);
+    const title = itemTitle(r);
     let reason = r.reviewCount === 0 ? '오늘 배운 내용' : `${INTERVALS[r.stage]}일 주기 복습`;
     if (r.wrongStreak >= 2) reason = `연속 오답 ${r.wrongStreak}회 · 재학습`;
     else if (r.lapses >= 2) reason = `반복 오답 ${r.lapses}회`;
     else if (r.lastResult === 'wrong') reason = '최근 오답';
+    if (r.kind === 'listening' && r.lastResult === 'wrong') reason = r.lapses >= 2 ? `듣기 반복 오답 ${r.lapses}회 · 다시 들어 보세요` : '듣기 오답 · 다시 들어 보세요';
     if (overdueDays > 0) reason += ` · ${overdueDays}일 밀림`;
     out.push({ key: r.key, kind: r.kind, refId: r.refId, title, question: q, reason, overdueDays, stage: r.stage });
   }
@@ -147,6 +169,9 @@ export function sortDue(items: ReviewSchedule[], _now: number, focusKey?: string
 export interface ReviewSummary {
   dueWords: number;
   dueConcepts: number;
+  dueListening: number;
+  /** 따라 말하기 재연습 (문제 풀이 목록과 별도) */
+  dueSpeaking: number;
   dueTotal: number;
   /** 오늘 목록에 들어가는 수 (하루 복습량 적용) */
   todayCount: number;
@@ -159,16 +184,20 @@ export interface ReviewSummary {
 
 export function reviewSummary(reviews: Record<string, ReviewSchedule>, perDay: number, now: number): ReviewSummary {
   const all = Object.values(reviews);
-  const due = all.filter((r) => isDue(r, now));
+  const dueSpeaking = all.filter((r) => r.kind === 'speaking' && isDue(r, now)).length;
+  const due = all.filter((r) => isDue(r, now) && r.kind !== 'speaking');
   const today = startOfDay(now);
-  const doneToday = all.filter((r) => r.lastReviewedAt && r.lastReviewedAt >= today).length;
+  const doneToday = all.filter((r) => r.kind !== 'speaking' && r.lastReviewedAt && r.lastReviewedAt >= today).length;
   const todayCount = Math.min(due.length, Math.max(0, perDay - doneToday));
   const sorted = sortDue(due, now).slice(0, todayCount);
   const dueWords = sorted.filter((r) => r.kind === 'word').length;
+  const dueListening = sorted.filter((r) => r.kind === 'listening').length;
   const total = doneToday + todayCount;
   return {
     dueWords,
-    dueConcepts: sorted.length - dueWords,
+    dueConcepts: sorted.length - dueWords - dueListening,
+    dueListening,
+    dueSpeaking,
     dueTotal: due.length,
     todayCount,
     deferred: due.length - todayCount,

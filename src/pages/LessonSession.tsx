@@ -13,8 +13,13 @@ import { judgeUnderstanding, type CheckOutcome } from '../lib/understanding';
 import { useLearningSession } from '../lib/useSession';
 import { startOfDay } from '../lib/util';
 import { useStore } from '../store/useStore';
+import { DialoguePlayer } from '../components/AudioPlayer';
+import { SpeakingPractice } from '../components/SpeakingPractice';
+import { dialogues } from '../data/listening';
+import { speakingSentences } from '../data/speaking';
+import { getQuestion } from '../data';
 
-type Step = 'intro' | 'review' | 'words' | 'quiz' | 'grammar' | 'vocab' | 'check' | 'judge' | 'extra' | 'writing' | 'test' | 'done';
+type Step = 'intro' | 'review' | 'words' | 'quiz' | 'grammar' | 'vocab' | 'check' | 'judge' | 'extra' | 'listen' | 'listenQ' | 'speak' | 'writing' | 'test' | 'done';
 
 const STEP_LABEL: Record<Step, string> = {
   intro: '준비',
@@ -26,6 +31,9 @@ const STEP_LABEL: Record<Step, string> = {
   check: '단계별 연습',
   judge: '이해도 확인',
   extra: '추가 연습',
+  listen: '대화 듣기',
+  listenQ: '듣기 이해도',
+  speak: '따라 말하기',
   writing: '직접 영작하기',
   test: '마무리 테스트',
   done: '완료',
@@ -52,6 +60,16 @@ function LessonSessionInner({ lessonId }: { lessonId: string }) {
     return buildReviewQueue(s.reviews, s.wrongNotes, s.answers, Math.min(plan.reviewLimit, Math.max(0, s.profile.reviewPerDay - doneToday)), Date.now());
   });
 
+  // 문법과 연결된 대화(아직 안 들은 것 우선)와 그 대화의 핵심 문장 2개
+  const [listen] = useState(() => {
+    if (!lesson) return null;
+    const recs = useStore.getState().listeningRecords;
+    const cands = dialogues.filter((d) => d.conceptIds.includes(lesson.conceptId));
+    const d = cands.find((x) => !recs[x.id]) ?? cands[0];
+    if (!d) return null;
+    return { d, questions: d.questionIds.map((id) => getQuestion(id)!), sentences: speakingSentences.filter((x) => x.dialogueId === d.id).slice(0, 2) };
+  });
+  const [speakIdx, setSpeakIdx] = useState(0);
   const [step, setStep] = useState<Step>('intro');
   const [wordIdx, setWordIdx] = useState(0);
   const [results, setResults] = useState<RunResult[]>([]);
@@ -73,10 +91,14 @@ function LessonSessionInner({ lessonId }: { lessonId: string }) {
     st.push('grammar');
     if (plan.vocabPractice.length) st.push('vocab');
     st.push('check', 'judge');
+    if (listen) {
+      st.push('listen', 'listenQ');
+      if (listen.sentences.length) st.push('speak');
+    }
     if (plan.writing.length) st.push('writing');
     st.push('test', 'done');
     return st;
-  }, [plan, reviewItems.length]);
+  }, [plan, reviewItems.length, listen]);
 
   useEffect(() => {
     if (lesson && unit) store.setLastLocation(`/course/lesson/${lesson.id}`, `${lesson.level} ${unit.title} · DAY ${lesson.day}`);
@@ -155,6 +177,9 @@ function LessonSessionInner({ lessonId }: { lessonId: string }) {
                     grammar: '강의 1',
                     vocab: `${plan.vocabPractice.length}문제`,
                     check: `${plan.check.length}문제`,
+                    listen: '대화 1',
+                    listenQ: `${listen?.questions.length ?? 0}문제`,
+                    speak: `${listen?.sentences.length ?? 0}문장`,
                     writing: `${plan.writing.length}문제`,
                     test: `${plan.test.length}문제`,
                   };
@@ -291,6 +316,50 @@ function LessonSessionInner({ lessonId }: { lessonId: string }) {
                 setStep('judge');
               }}
             />
+          </>
+        )}
+
+        {step === 'listen' && listen && (
+          <>
+            <p className="text-sm text-ink-sub">방금 배운 문법이 실제 대화에서 어떻게 쓰이는지 들어 봐요. 처음엔 스크립트를 숨기고 들어 보세요.</p>
+            <h2 className="font-bold text-lg">{listen.d.title}</h2>
+            <DialoguePlayer d={listen.d} />
+            <button type="button" className="btn-primary w-full" onClick={() => go()}>
+              듣기 문제 풀기
+            </button>
+          </>
+        )}
+
+        {step === 'listenQ' && listen && (
+          <QuestionRunner
+            questions={listen.questions}
+            source="course"
+            getSessionId={getId}
+            finishLabel={listen.sentences.length ? '따라 말하기로' : '영작으로'}
+            onFinish={(r) => {
+              addResults(r);
+              store.recordListening(listen.d.id, r.filter((x) => x.correct).length, r.length);
+              go();
+            }}
+          />
+        )}
+
+        {step === 'speak' && listen && listen.sentences[speakIdx] && (
+          <>
+            <p className="text-sm text-ink-sub">
+              대화의 핵심 문장을 따라 말해요 ({speakIdx + 1}/{listen.sentences.length}). 마이크를 쓸 수 없으면 예시 음성만 듣고 넘어가도 돼요.
+            </p>
+            <SpeakingPractice key={listen.sentences[speakIdx].id} s={listen.sentences[speakIdx]} />
+            <button
+              type="button"
+              className="btn-primary w-full"
+              onClick={() => {
+                if (speakIdx < listen.sentences.length - 1) setSpeakIdx(speakIdx + 1);
+                else go();
+              }}
+            >
+              {speakIdx < listen.sentences.length - 1 ? '다음 문장' : plan.writing.length ? '영작으로' : '마무리 테스트로'}
+            </button>
           </>
         )}
 
